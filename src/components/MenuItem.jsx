@@ -2,6 +2,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, removeFromCart } from '../redux/cartSlice';
 import { Minus, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 
 const MenuItem = ({ item }) => {
     const dispatch = useDispatch();
@@ -12,6 +13,9 @@ const MenuItem = ({ item }) => {
 
     const handleAdd = () => {
         dispatch(addToCart(item));
+        if (quantity === 0) {
+            toast.success(`Added ${item.name} to cart!`);
+        }
     };
 
     const handleRemove = () => {

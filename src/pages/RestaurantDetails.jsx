@@ -1,13 +1,20 @@
+import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { Star, Clock, Info, Search } from 'lucide-react';
+import { Star, Clock } from 'lucide-react';
 import MenuItem from '../components/MenuItem';
+import { MenuItemSkeleton } from '../components/Skeletons';
 import { motion } from 'framer-motion';
 
 const RestaurantDetails = () => {
     const { id } = useParams();
-    const { restaurants, menuItems } = useSelector((state) => state.data);
-    const cartItems = useSelector(state => state.cart.items);
+    const { restaurants } = useSelector((state) => state.data);
+    const [loading, setLoading] = React.useState(true);
+    
+    React.useEffect(() => {
+        const timer = setTimeout(() => setLoading(false), 800);
+        return () => clearTimeout(timer);
+    }, []);
 
     const restaurant = restaurants.find(r => r.id === parseInt(id));
 
@@ -67,21 +74,27 @@ const RestaurantDetails = () => {
             <div className="max-w-4xl mx-auto px-4 py-8 relative">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800 dark:text-white">
-                        Recommended <span className="text-slate-500 font-medium text-sm">({menuItems.length})</span>
+                        Recommended
                     </h2>
                 </div>
 
-                <div className="space-y-2">
-                    {menuItems.map((item, index) => (
-                        <motion.div
-                            key={item.id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                        >
-                            <MenuItem item={item} />
-                        </motion.div>
-                    ))}
+                <div className="space-y-4">
+                    {loading ? (
+                        Array.from({ length: 4 }).map((_, idx) => (
+                            <MenuItemSkeleton key={idx} />
+                        ))
+                    ) : (
+                        restaurant.menu.map((item, index) => (
+                            <motion.div
+                                key={item.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.05 }}
+                            >
+                                <MenuItem item={item} />
+                            </motion.div>
+                        ))
+                    )}
                 </div>
 
             </div>

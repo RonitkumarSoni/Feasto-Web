@@ -1,13 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { motion } from 'framer-motion';
-import { ChevronRight, SlidersHorizontal } from 'lucide-react';
+import { ChevronRight, SlidersHorizontal, Tag, Zap, Clock } from 'lucide-react';
 import CategorySlider from '../components/CategorySlider';
 import RestaurantCard from '../components/RestaurantCard';
+import { RestaurantCardSkeleton } from '../components/Skeletons';
+
+const offers = [
+    { id: 1, title: '50% OFF up to ₹100', subtitle: 'Use code FEAST50 • Min order ₹199', color: 'from-orange-500 to-pink-500', icon: Tag, badge: 'LIMITED TIME' },
+    { id: 2, title: 'Free Delivery', subtitle: 'On your first 3 orders', color: 'from-blue-500 to-purple-500', icon: Zap, badge: 'NEW USER' },
+    { id: 3, title: '30 Min Delivery', subtitle: 'Or your next order free', color: 'from-green-500 to-teal-500', icon: Clock, badge: 'GUARANTEE' },
+];
 
 const Home = () => {
     const { categories, restaurants } = useSelector((state) => state.data);
     const [filter, setFilter] = useState('All');
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setLoading(false), 800);
+        return () => clearTimeout(timer);
+    }, []);
 
     // Filter restaurants based on mock filter buttons
     const filteredRestaurants = restaurants.filter(res => {
@@ -57,7 +70,38 @@ const Home = () => {
             {/* Category Slider */}
             <CategorySlider categories={categories} />
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-slate-200 dark:border-slate-800 mt-4">
+            {/* Offers Section */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="flex items-center justify-between mb-5">
+                    <h2 className="text-2xl font-extrabold text-slate-800 dark:text-white">Offers for you</h2>
+                    <button className="text-sm text-primary font-semibold flex items-center gap-1 hover:underline">
+                        See all <ChevronRight className="w-4 h-4" />
+                    </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {offers.map((offer, i) => (
+                        <motion.div
+                            key={offer.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.1 }}
+                            whileHover={{ scale: 1.02 }}
+                            className={`bg-gradient-to-br ${offer.color} rounded-2xl p-5 text-white cursor-pointer relative overflow-hidden shadow-lg`}
+                        >
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-8 translate-x-8"></div>
+                            <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/10 rounded-full translate-y-6 -translate-x-6"></div>
+                            <span className="relative z-10 text-xs font-extrabold bg-white/20 px-2.5 py-1 rounded-full tracking-wider">{offer.badge}</span>
+                            <div className="relative z-10 mt-3">
+                                <offer.icon className="w-7 h-7 mb-2 opacity-90" />
+                                <h3 className="text-xl font-extrabold leading-tight">{offer.title}</h3>
+                                <p className="text-sm opacity-80 mt-1">{offer.subtitle}</p>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-slate-200 dark:border-slate-800">
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">
                         Top restaurants chains in your location
@@ -91,16 +135,22 @@ const Home = () => {
 
                 {/* Restaurants Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-10">
-                    {filteredRestaurants.map((restaurant, index) => (
-                        <motion.div
-                            key={restaurant.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                        >
-                            <RestaurantCard restaurant={restaurant} />
-                        </motion.div>
-                    ))}
+                    {loading ? (
+                        Array.from({ length: 8 }).map((_, idx) => (
+                            <RestaurantCardSkeleton key={idx} />
+                        ))
+                    ) : (
+                        filteredRestaurants.map((restaurant, index) => (
+                            <motion.div
+                                key={restaurant.id}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: index * 0.1 }}
+                            >
+                                <RestaurantCard restaurant={restaurant} />
+                            </motion.div>
+                        ))
+                    )}
                 </div>
             </div>
 

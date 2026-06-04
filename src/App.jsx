@@ -1,38 +1,55 @@
+import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { Toaster } from 'react-hot-toast';
 
 // Layout
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 
-// Pages
-import Splash from './pages/Splash';
-import Home from './pages/Home';
-import Auth from './pages/Auth';
-import RestaurantDetails from './pages/RestaurantDetails';
-import Cart from './pages/Cart';
-import OrderSuccess from './pages/OrderSuccess';
-import Profile from './pages/Profile';
+// Lazy-loaded Pages
+const Splash = React.lazy(() => import('./pages/Splash'));
+const Home = React.lazy(() => import('./pages/Home'));
+const Auth = React.lazy(() => import('./pages/Auth'));
+const RestaurantDetails = React.lazy(() => import('./pages/RestaurantDetails'));
+const Cart = React.lazy(() => import('./pages/Cart'));
+const OrderSuccess = React.lazy(() => import('./pages/OrderSuccess'));
+const Profile = React.lazy(() => import('./pages/Profile'));
+const OrderTracking = React.lazy(() => import('./pages/OrderTracking'));
+const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
+const RestaurantDashboard = React.lazy(() => import('./pages/RestaurantDashboard'));
+const DeliveryDashboard = React.lazy(() => import('./pages/DeliveryDashboard'));
+
+const HIDE_NAV_PATHS = ['/', '/login', '/signup', '/forgot-password', '/success', '/admin', '/restaurant-dashboard', '/delivery'];
 
 const AppLayout = () => {
   const location = useLocation();
-  const hideNavFooter = location.pathname === '/' || location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/success';
+  const hideNavFooter = HIDE_NAV_PATHS.some(p => location.pathname === p);
 
   return (
     <div className="flex flex-col min-h-screen">
       {!hideNavFooter && <Navbar />}
       <main className="flex-grow">
-        <Routes>
-          <Route path="/" element={<Splash />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/login" element={<Auth type="login" />} />
-          <Route path="/signup" element={<Auth type="signup" />} />
-          <Route path="/restaurant/:id" element={<RestaurantDetails />} />
-          <Route path="/cart" element={<Cart />} />
-          <Route path="/success" element={<OrderSuccess />} />
-          <Route path="/profile" element={<Profile />} />
-        </Routes>
+        <Suspense fallback={
+          <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        }>
+          <Routes>
+            <Route path="/" element={<Splash />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/login" element={<Auth type="login" />} />
+            <Route path="/signup" element={<Auth type="signup" />} />
+            <Route path="/forgot-password" element={<Auth type="forgot" />} />
+            <Route path="/restaurant/:id" element={<RestaurantDetails />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/success" element={<OrderSuccess />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/track/:orderId?" element={<OrderTracking />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/restaurant-dashboard" element={<RestaurantDashboard />} />
+            <Route path="/delivery" element={<DeliveryDashboard />} />
+          </Routes>
+        </Suspense>
       </main>
       {!hideNavFooter && <Footer />}
     </div>
@@ -43,7 +60,13 @@ function App() {
   return (
     <Router>
       <AppLayout />
-      <ToastContainer position="bottom-right" />
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: { borderRadius: '12px', background: '#1e293b', color: '#fff', fontSize: '14px' },
+          success: { iconTheme: { primary: '#f97316', secondary: '#fff' } },
+        }}
+      />
     </Router>
   );
 }
