@@ -1,22 +1,22 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { Star, Clock } from 'lucide-react';
 import MenuItem from '../components/MenuItem';
 import { MenuItemSkeleton } from '../components/Skeletons';
 import { motion } from 'framer-motion';
+import { fetchMenu } from '../redux/dataSlice';
 
 const RestaurantDetails = () => {
     const { id } = useParams();
-    const { restaurants } = useSelector((state) => state.data);
-    const [loading, setLoading] = React.useState(true);
+    const { restaurants, menuItems, loading } = useSelector((state) => state.data);
+    const dispatch = useDispatch();
     
     React.useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 800);
-        return () => clearTimeout(timer);
-    }, []);
+        dispatch(fetchMenu(id));
+    }, [dispatch, id]);
 
-    const restaurant = restaurants.find(r => r.id === parseInt(id));
+    const restaurant = restaurants.find(r => String(r.id) === String(id));
 
     if (!restaurant) {
         return (
@@ -83,8 +83,8 @@ const RestaurantDetails = () => {
                         Array.from({ length: 4 }).map((_, idx) => (
                             <MenuItemSkeleton key={idx} />
                         ))
-                    ) : (
-                        restaurant.menu.map((item, index) => (
+                    ) : menuItems && menuItems.length > 0 ? (
+                        menuItems.map((item, index) => (
                             <motion.div
                                 key={item.id}
                                 initial={{ opacity: 0, y: 10 }}
@@ -94,6 +94,8 @@ const RestaurantDetails = () => {
                                 <MenuItem item={item} />
                             </motion.div>
                         ))
+                    ) : (
+                        <p className="text-slate-500 text-center py-8">No menu items available at the moment.</p>
                     )}
                 </div>
 

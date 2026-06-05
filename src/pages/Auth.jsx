@@ -1,28 +1,69 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User as UserIcon, ArrowRight } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useDispatch, useSelector } from 'react-redux';
+import { useGoogleLogin } from '@react-oauth/google';
+import { loginUser, registerUser, googleLogin, clearError } from '../redux/authSlice';
 
 const Auth = ({ type }) => {
     const isLogin = type === 'login';
     const isForgot = type === 'forgot';
     const isSignup = type === 'signup';
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
+
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
-    const handleSubmit = (e) => {
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate('/home');
+        }
+        if (error) {
+            toast.error(error);
+            dispatch(clearError());
+        }
+    }, [isAuthenticated, error, navigate, dispatch]);
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (isForgot) {
             toast.success('Password reset link sent to your email!');
             navigate('/login');
             return;
         }
-        // Dummy login/signup action
-        toast.success(isLogin ? 'Successfully logged in!' : 'Account created successfully!');
-        navigate('/home');
+
+        if (isLogin) {
+            const resultAction = await dispatch(loginUser({ email, password }));
+            if (loginUser.fulfilled.match(resultAction)) {
+                toast.success('Successfully logged in!');
+                navigate('/home');
+            }
+        } else if (isSignup) {
+            const resultAction = await dispatch(registerUser({ name, email, password }));
+            if (registerUser.fulfilled.match(resultAction)) {
+                toast.success('Account created successfully!');
+                navigate('/home');
+            }
+        }
     };
+
+    const handleGoogleLogin = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            const resultAction = await dispatch(googleLogin(tokenResponse.access_token));
+            if (googleLogin.fulfilled.match(resultAction)) {
+                toast.success('Logged in with Google!');
+                navigate('/home');
+            }
+        },
+        onError: () => {
+            toast.error('Google Login Failed');
+        }
+    });
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4">
@@ -53,7 +94,7 @@ const Auth = ({ type }) => {
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                         <UserIcon className="h-5 w-5 text-slate-400" />
                                     </div>
-                                    <input type="text" className="pl-10 w-full py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-slate-900 dark:text-white" placeholder="John Doe" />
+                                    <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="pl-10 w-full py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none text-slate-900 dark:text-white" placeholder="John Doe" />
                                 </div>
                             </div>
                         )}
@@ -83,9 +124,13 @@ const Auth = ({ type }) => {
                             </div>
                         )}
 
-                        <button type="submit" className="w-full gradient-bg text-white font-semibold rounded-xl py-3 flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-[0.98]">
-                            {isForgot ? 'Send Reset Link' : isLogin ? 'Sign In' : 'Create Account'}
-                            <ArrowRight className="h-4 w-4" />
+                        <button type="submit" disabled={loading} className="w-full gradient-bg text-white font-semibold rounded-xl py-3 flex items-center justify-center gap-2 hover:shadow-lg hover:shadow-primary/30 transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed">
+                            {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                                <>
+                                    {isForgot ? 'Send Reset Link' : isLogin ? 'Sign In' : 'Create Account'}
+                                    <ArrowRight className="h-4 w-4" />
+                                </>
+                            )}
                         </button>
                     </form>
 
@@ -98,7 +143,7 @@ const Auth = ({ type }) => {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <button type="button" className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-300 font-semibold shadow-sm">
+                                <button type="button" onClick={() => handleGoogleLogin()} className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-300 font-semibold shadow-sm">
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5">
                                         <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
                                         <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>

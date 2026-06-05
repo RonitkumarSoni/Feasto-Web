@@ -1,17 +1,105 @@
+import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
 import { addToCart, removeFromCart, clearCart } from '../redux/cartSlice';
 import { motion } from 'framer-motion';
-import { Minus, Plus, Trash2, ArrowRight, ShoppingBag } from 'lucide-react';
+import { Minus, Plus, Trash2, ArrowRight, ShoppingBag, Loader2 } from 'lucide-react';
+import api from '../services/api';
+import { toast } from 'react-hot-toast';
+import useRazorpay from 'react-razorpay';
 
 const Cart = () => {
     const { items, totalAmount, totalQuantity } = useSelector(state => state.cart);
     const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    const handleCheckout = () => {
-        dispatch(clearCart());
-        navigate('/success');
+    const { isAuthenticated, user } = useSelector(state => state.auth);
+    const [loading, setLoading] = useState(false);
+
+    const [Razorpay] = useRazorpay();
+
+    const handleCheckout = async () => {
+        if (!isAuthenticated) {
+            toast.error("Please login to place an order");
+            navigate('/login');
+            return;
+        }
+        
+        try {
+            setLoading(true);
+            const deliveryAddress = user?.addresses?.[0] || {
+                street: "123 Main St",
+                city: "Bangalore",
+                state: "Karnataka",
+                zipCode: "560001",
+                country: "India",
+                isDefault: true
+            };
+
+            // 1. Create Order
+            const orderPayload = {
+                restaurantId: "1", // Hardcoded for demo if items are mixed
+                items: items.map(i => ({ foodId: i.id.toString(), quantity: i.quantity, price: i.price })),
+                deliveryAddress: deliveryAddress,
+                paymentMethod: "RAZORPAY"
+            };
+
+            const orderRes = await api.post('/orders', orderPayload);
+            const orderId = orderRes.data.data.id;
+
+            // 2. Initiate Payment
+            const initRes = await api.post('/payments/initiate', { orderId });
+            const { razorpayOrderId, amount, currency, key } = initRes.data.data;
+
+            // 3. Configure Razorpay Options
+            const options = {
+                key: key,
+                amount: amount.toString(),
+                currency: currency,
+                name: "Feasto",
+                description: "Order Payment",
+                order_id: razorpayOrderId,
+                handler: async (response) => {
+                    try {
+                        setLoading(true);
+                        // 4. Verify Payment
+                        await api.post('/payments/verify', {
+                            orderId,
+                            razorpayPaymentId: response.razorpay_payment_id,
+                            razorpayOrderId: response.razorpay_order_id,
+                            razorpaySignature: response.razorpay_signature
+                        });
+                        
+                        dispatch(clearCart());
+                        toast.success("Payment successful! Order placed.");
+                        navigate(`/profile/track/${orderId}`);
+                    } catch (err) {
+                        toast.error("Payment verification failed");
+                    } finally {
+                        setLoading(false);
+                    }
+                },
+                prefill: {
+                    name: user?.name || "Customer",
+                    email: user?.email || "",
+                },
+                theme: {
+                    color: "#f97316", // Primary color (orange-500)
+                },
+            };
+
+            // 5. Open Razorpay Modal
+            const rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (response){
+                toast.error(response.error.description || "Payment failed");
+            });
+            rzp.open();
+
+        } catch (error) {
+            toast.error(error?.response?.data?.message || error?.message || "Failed to place order");
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (items.length === 0) {
@@ -138,9 +226,12 @@ const Cart = () => {
 
                         <button
                             onClick={handleCheckout}
-                            className="w-full gradient-bg mt-6 text-white font-bold py-4 rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                            disabled={loading}
+                            className="w-full gradient-bg mt-6 text-white font-bold py-4 rounded-xl hover:shadow-lg hover:shadow-primary/30 transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
-                            Checkout <ArrowRight className="w-5 h-5" />
+                            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                                <>Checkout <ArrowRight className="w-5 h-5" /></>
+                            )}
                         </button>
 
                         <div className="mt-4 p-4 bg-orange-50 dark:bg-orange-950/30 rounded-xl border border-orange-100 dark:border-orange-900/30 flex items-start gap-3">

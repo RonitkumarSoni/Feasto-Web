@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { motion } from 'framer-motion';
 import { ChevronRight, SlidersHorizontal, Tag, Zap, Clock } from 'lucide-react';
 import CategorySlider from '../components/CategorySlider';
 import RestaurantCard from '../components/RestaurantCard';
 import { RestaurantCardSkeleton } from '../components/Skeletons';
+import { fetchRestaurants } from '../redux/dataSlice';
 
 const offers = [
     { id: 1, title: '50% OFF up to ₹100', subtitle: 'Use code FEAST50 • Min order ₹199', color: 'from-orange-500 to-pink-500', icon: Tag, badge: 'LIMITED TIME' },
@@ -13,14 +14,16 @@ const offers = [
 ];
 
 const Home = () => {
-    const { categories, restaurants } = useSelector((state) => state.data);
+    const { categories, restaurants, loading } = useSelector((state) => state.data);
     const [filter, setFilter] = useState('All');
-    const [loading, setLoading] = useState(true);
+    const dispatch = useDispatch();
 
     useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 800);
-        return () => clearTimeout(timer);
-    }, []);
+        // Fetch restaurants from backend
+        if (restaurants.length === 0) {
+            dispatch(fetchRestaurants());
+        }
+    }, [dispatch, restaurants.length]);
 
     // Filter restaurants based on mock filter buttons
     const filteredRestaurants = restaurants.filter(res => {

@@ -1,6 +1,8 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { useSelector } from 'react-redux';
+import { initSocket, disconnectSocket } from './socket';
 
 // Layout
 import Navbar from './components/Navbar';
@@ -24,6 +26,15 @@ const HIDE_NAV_PATHS = ['/', '/login', '/signup', '/forgot-password', '/success'
 const AppLayout = () => {
   const location = useLocation();
   const hideNavFooter = HIDE_NAV_PATHS.some(p => location.pathname === p);
+  const { isAuthenticated, token } = useSelector(state => state.auth);
+
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      initSocket(token);
+    } else {
+      disconnectSocket();
+    }
+  }, [isAuthenticated, token]);
 
   return (
     <div className="flex flex-col min-h-screen">

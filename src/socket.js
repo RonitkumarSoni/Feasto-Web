@@ -1,78 +1,60 @@
-// socket.js — Mock Socket.IO utility
-// Replace the mock with real socket.io-client when backend is ready
+import { io } from 'socket.io-client';
 
-const mockSocket = {
-    _listeners: {},
-    _emit: function (event, data) {
-        const listeners = this._listeners[event] || [];
-        listeners.forEach(fn => fn(data));
-    },
-    on: function (event, callback) {
-        if (!this._listeners[event]) {
-            this._listeners[event] = [];
-        }
-        this._listeners[event].push(callback);
-        return this;
-    },
-    off: function (event, callback) {
-        if (!this._listeners[event]) return;
-        this._listeners[event] = this._listeners[event].filter(fn => fn !== callback);
-        return this;
-    },
-    emit: function (event, data) {
-        console.log('[Socket Mock] Emitting:', event, data);
-        return this;
-    },
-    disconnect: function () {
-        console.log('[Socket Mock] Disconnected');
-        this._listeners = {};
-    },
-    connected: true,
+let socket;
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+
+export const initSocket = (token) => {
+    if (!socket && token) {
+        socket = io(`${SOCKET_URL}/customer`, {
+            auth: {
+                token
+            }
+        });
+
+        socket.on('connect', () => {
+            console.log('[Socket] Connected to server');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('[Socket] Disconnected from server');
+        });
+    }
+    return socket;
 };
 
-// Simulate order tracking status updates
-export const startOrderTracking = (orderId, onUpdate) => {
-    const statuses = [
-        { status: 'confirmed', message: 'Order confirmed by restaurant!' },
-        { status: 'preparing', message: 'Chef is preparing your food 🍳' },
-        { status: 'ready', message: 'Order packed & ready for pickup!' },
-        { status: 'picked_up', message: 'Delivery partner picked up your order 🛵' },
-        { status: 'near_you', message: "Almost there! Delivery partner is nearby" },
-        { status: 'delivered', message: 'Order delivered! Enjoy your meal 🎉' },
-    ];
-
-    let index = 0;
-    const interval = setInterval(() => {
-        if (index < statuses.length) {
-            onUpdate({ orderId, ...statuses[index] });
-            index++;
-        } else {
-            clearInterval(interval);
-        }
-    }, 4000); // Advance every 4 seconds for demo
-
-    return () => clearInterval(interval); // Return cleanup function
+export const getSocket = () => {
+    return socket;
 };
 
-// Simulate notification events
+export const disconnectSocket = () => {
+    if (socket) {
+        socket.disconnect();
+        socket = null;
+    }
+};
+
+export const joinOrderRoom = (orderId) => {
+    if (socket) {
+        socket.emit('join_order_room', orderId);
+    }
+};
+
+export const subscribeToOrderStatus = (onUpdate) => {
+    if (!socket) return () => {};
+    socket.on('order_status_update', onUpdate);
+    return () => socket.off('order_status_update', onUpdate);
+};
+
+export const subscribeToDeliveryLocation = (onUpdate) => {
+    if (!socket) return () => {};
+    socket.on('delivery_location_update', onUpdate);
+    return () => socket.off('delivery_location_update', onUpdate);
+};
+
 export const subscribeToNotifications = (onNotification) => {
-    const notifications = [
-        { type: 'offer', message: '🔥 50% off on your next order! Use: FEAST50' },
-        { type: 'order', message: '📦 Your order from Burger King is out for delivery!' },
-        { type: 'promo', message: '🎉 New restaurant added in your area!' },
-    ];
-
-    let index = 0;
-    const interval = setInterval(() => {
-        if (index < notifications.length) {
-            onNotification(notifications[index]);
-            index++;
-        } else {
-            clearInterval(interval);
-        }
-    }, 8000);
-
-    return () => clearInterval(interval);
+    if (!socket) return () => {};
+    socket.on('new_notification', onNotification);
+    return () => socket.off('new_notification', onNotification);
 };
 
-export default mockSocket;
+export default socket;
