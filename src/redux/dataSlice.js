@@ -70,6 +70,8 @@ const mockCategories = [
     { id: 4, name: "Desserts", image: "https://images.unsplash.com/photo-1551024506-0bccd828d307?w=200&auto=format&fit=crop&q=60" },
     { id: 5, name: "North Indian", image: "https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=200&auto=format&fit=crop&q=60" },
     { id: 6, name: "South Indian", image: "https://images.unsplash.com/photo-1610192244261-3f33de3f55e4?w=200&auto=format&fit=crop&q=60" },
+    { id: 7, name: "Chinese", image: "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=200&auto=format&fit=crop&q=60" },
+    { id: 8, name: "Healthy", image: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=200&auto=format&fit=crop&q=60" },
 ];
 
 const mockMenu = [
